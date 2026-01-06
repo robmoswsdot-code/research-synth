@@ -1,0 +1,5 @@
+project_name: Fish Passage Portfolio Analysis
+source_dirs:
+- sources
+output_format: markdown
+citation_style: inline
