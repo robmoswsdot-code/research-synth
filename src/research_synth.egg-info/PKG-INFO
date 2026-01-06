@@ -1,0 +1,38 @@
+Metadata-Version: 2.4
+Name: research-synth
+Version: 0.1.0
+Summary: CLI research synthesis pipeline: ingest -> concepts -> draft report with citations.
+License: MIT
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: typer==0.12.3
+Requires-Dist: click==8.1.7
+Requires-Dist: pydantic==2.8.2
+Requires-Dist: pydantic-settings==2.4.0
+Requires-Dist: rich==13.7.1
+Requires-Dist: diskcache==5.6.3
+Requires-Dist: pyyaml==6.0.3
+Requires-Dist: tiktoken>=0.8.0
+Provides-Extra: pdf
+Requires-Dist: pymupdf==1.23.7; extra == "pdf"
+Provides-Extra: docx
+Requires-Dist: python-docx==1.1.2; extra == "docx"
+Provides-Extra: excel
+Requires-Dist: pandas==2.2.2; extra == "excel"
+Requires-Dist: openpyxl==3.1.5; extra == "excel"
+
+# research-synth
+
+Starter CLI tool for research synthesis.
+
+## Dependency Note
+This project pins `click==8.1.7` to avoid Typer/Click 8.2+ metavar signature incompatibilities.
+
+## Optional format support
+
+Base install supports .txt and .md.
+
+Enable extras:
+- PDF: `pip install -e '.[pdf]'`
+- DOCX: `pip install -e '.[docx]'`
+- Excel: `pip install -e '.[excel]'`

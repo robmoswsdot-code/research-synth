@@ -1,0 +1,2 @@
+[console_scripts]
+research-synth = research_synth.cli:app

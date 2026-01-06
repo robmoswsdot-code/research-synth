@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "research-synth"
+version = "0.1.0"
+description = "CLI research synthesis pipeline: ingest -> concepts -> draft report with citations."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = [
+  "typer==0.12.3",
+  "click==8.1.7",
+  "pydantic==2.8.2",
+  "pydantic-settings==2.4.0",
+  "rich==13.7.1",
+  "diskcache==5.6.3",
+  "pyyaml==6.0.3",
+  "tiktoken>=0.8.0",
+]
+
+[project.optional-dependencies]
+pdf = ["pymupdf==1.23.7"]
+docx = ["python-docx==1.1.2"]
+excel = ["pandas==2.2.2", "openpyxl==3.1.5"]
+
+[project.scripts]
+research-synth = "research_synth.cli:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
