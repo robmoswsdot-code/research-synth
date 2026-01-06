@@ -1,7 +1,36 @@
+# --- CTO HYGIENE DIRECTIVE ---
+
+# Python Environment
 .venv/
 __pycache__/
-*.pyc
-.pytest_cache/
-.research_cache/
+*.py[cod]
+*$py.class
+
+# Project-Specific Data (NEVER COMMIT SITE DATA)
+sources/
+results/
+analysis/
 chunks/
 outputs/
+.research_cache/
+.research_synth_state
+
+# Loose Report Files (Data Isolation)
+*.json
+*.md
+!README.md
+!LOCAL_ROOT_STANDARDIZATION.md
+
+# OS/IDE Noise
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Test/Debug Artifacts
+test_*.py
+debug_*.py
+validate_*.py
+
+# Legacy
+legacy/
+tools/
