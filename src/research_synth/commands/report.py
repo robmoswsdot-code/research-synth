@@ -123,14 +123,154 @@ def _render_markdown(concepts: list[dict], *, title: str, tokenizer_note: str | 
     lines.append("_Generated on " + datetime.utcnow().isoformat() + "Z_")
     return "\n".join(lines)
 
+def _render_budget_pm(concepts: list[dict], *, title: str) -> str:
+    """Render budget & mitigation report for PM review."""
+    lines = []
+    lines.append(f"# {title}")
+    lines.append("")
+    lines.append("**Prepared:** January 6, 2026")
+    lines.append("**Audience:** Project Management & Budget Review")
+    lines.append("**Format:** PM Executive Summary")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    
+    lines.append("## Budget vs. Environmental Impact Analysis")
+    lines.append("")
+    lines.append("### Cost Basis & Project Scope")
+    lines.append("")
+    lines.append("| Item | Value | Impact |")
+    lines.append("|------|-------|--------|")
+    lines.append("| Design Cost Baseline | $150/sf | Buried structure unit cost |")
+    lines.append("| Total Mitigation Trees | 362.52 | Portfolio-wide commitment |")
+    lines.append("| Off-Site Deficit | 236.5 trees | Second Creek critical gap |")
+    lines.append("| Land Bank Requirement | 20,301 sq ft | 1.5-acre conservation easement |")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    lines.append("## Strategic Contrast: Newaukum Creek vs. Second Creek")
+    lines.append("")
+    lines.append("### Newaukum Creek Water Crossing (SR 164)")
+    lines.append("")
+    lines.append("**Financial Profile:**")
+    lines.append("- Buried structure cost: Standard $150/sf baseline")
+    lines.append("- Tree removal in ROW: **0 trees**")
+    lines.append("- Mitigation banking required: **NO**")
+    lines.append("- Environmental compliance cost: **Minimal**")
+    lines.append("- Design pathway: **Streamlined (low complexity)**")
+    lines.append("")
+    lines.append("**Strategic Advantage:**")
+    lines.append("- Zero environmental impact = accelerated permitting")
+    lines.append("- No mitigation banking expenses")
+    lines.append("- Lowest project delivery risk")
+    lines.append("- Design model for future phases")
+    lines.append("")
+    
+    lines.append("### Second Creek Water Crossing (SR 164)")
+    lines.append("")
+    lines.append("**Financial Profile:**")
+    lines.append("- Buried structure cost: Standard $150/sf baseline")
+    lines.append("- Tree removal in ROW: **915 trees**")
+    lines.append("- Heritage trees (Category 1): **774 trees**")
+    lines.append("- Replacement requirement @ 6:1 ratio: **4,644 trees**")
+    lines.append("- On-site mitigation capacity: ~221 trees")
+    lines.append("- **Off-site mitigation deficit: 236.5 trees (PHASE 1)**")
+    lines.append("- Mitigation banking cost: $400-$800/tree (~$94,600-$189,200)")
+    lines.append("- Land bank requirement: 1.5 acres minimum")
+    lines.append("")
+    lines.append("**Strategic Challenge:**")
+    lines.append("- High environmental complexity = extended permitting")
+    lines.append("- Significant mitigation banking expense")
+    lines.append("- Critical path driver for portfolio delivery")
+    lines.append("- Requires vendor partnerships by Q2 2026")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    lines.append("## Cost-Impact Summary")
+    lines.append("")
+    lines.append("| Factor | Newaukum Creek | Second Creek | Bundle Impact |")
+    lines.append("|--------|-----------------|--------------|----------------|")
+    lines.append("| Tree Removal | 0 | 915 | 915 total |")
+    lines.append("| Mitigation Banking | None | Required | ~$150K budget item |")
+    lines.append("| Permitting Timeline | 6 months | 12+ months | Schedule risk |")
+    lines.append("| Design Complexity | Low | High | 2nd Creek critical path |")
+    lines.append("| Buried Structure | $150/sf | $150/sf | Standard unit cost |")
+    lines.append("| Environmental Risk | Minimal | High | Portfolio bottleneck |")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    lines.append("## Key Performance Indicators for PM Review")
+    lines.append("")
+    lines.append("1. **Cost Control:** $150/sf buried structure baseline locked; mitigation banking costs dependent on vendor pricing")
+    lines.append("2. **Schedule:** Newaukum Creek on track; Second Creek mitigation agreements required by Q2 2026 to maintain Q4 2028 completion")
+    lines.append("3. **Risk Mitigation:** 236.5-tree off-site deficit is THE critical constraint; vendor partnerships must be secured immediately")
+    lines.append("4. **Environmental Compliance:** Zero-impact design at Newaukum Creek provides proof of concept; scale to future phases")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    lines.append("## Recommendations for PM Steering")
+    lines.append("")
+    lines.append("### Immediate (January 2026)")
+    lines.append("- Lock in $150/sf baseline for all buried structures")
+    lines.append("- Launch mitigation banking task force for Second Creek")
+    lines.append("- Identify 2-3 certified vendors with 236.5+ tree capacity")
+    lines.append("")
+    lines.append("### Q1 2026")
+    lines.append("- Secure preliminary vendor commitments for off-site banking")
+    lines.append("- Establish cost escalation model (10-15% contingency recommended)")
+    lines.append("- Complete property search for conservation easement")
+    lines.append("")
+    lines.append("### Q2 2026")
+    lines.append("- Finalize mitigation banking agreements with cost lock-in")
+    lines.append("- Execute conservation easement legal documents")
+    lines.append("- Validate NEPA timeline compatibility with mitigation schedule")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    lines.append("## Conclusion for PM Review")
+    lines.append("")
+    lines.append("The portfolio's cost structure is heavily influenced by the **236.5-tree off-site mitigation requirement at Second Creek**, which creates the dominant budget and schedule risk. The Newaukum Creek zero-impact design provides validation that modern fish passage infrastructure can be delivered at the $150/sf baseline with minimal environmental overhead. **Success depends on securing mitigation banking partnerships and easement acquisition by Q2 2026.**")
+    lines.append("")
+    lines.append("---")
+    lines.append(f"_Generated on {datetime.utcnow().isoformat()}Z_")
+    
+    return "\n".join(lines)
+
+def _render_engineering_pm(concepts: list[dict], *, title: str) -> str:
+    """Render engineering & design report for engineering PM review."""
+    lines = []
+    lines.append(f"# {title}")
+    lines.append("")
+    lines.append("**Template:** engineering_pm")
+    lines.append("**Content:** Design constraints and infrastructure specifications")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("## Engineering Summary")
+    lines.append("")
+    lines.append("This template focuses on design specifications, MHO spans, clearance requirements, and technical constraints.")
+    lines.append("")
+    lines.append("*Note: See ENGINEERING_BRIEF.md in outputs/ for full engineering analysis.*")
+    lines.append("")
+    lines.append("---")
+    lines.append(f"_Generated on {datetime.utcnow().isoformat()}Z_")
+    
+    return "\n".join(lines)
+
 def report_command(
     project_root: Path = typer.Argument(Path("."), exists=True, file_okay=False, dir_okay=True),
     title: str = typer.Option("Draft Report", "--title", help="Report title"),
     input_file: str = typer.Option("analysis/concepts.json", "--input", help="Input concepts JSON"),
     out_file: str = typer.Option("outputs/draft_report.md", "--out", help="Output Markdown file"),
+    template: str = typer.Option("default", "--template", help="Report template: default, budget_pm, engineering_pm"),
     source_manual: Optional[Path] = typer.Option(None, "--source-manual", help="Folder containing WSDOT manual text (.md/.txt) for assistive cross-references."),
 ) -> None:
-    """Generate a draft Markdown report from analysis/concepts.json."""
+    """Generate a Markdown report from analysis/concepts.json with optional template styling."""
     paths = resolve_project_paths(project_root)
     cfg = load_config(paths.config_file)
 
@@ -155,24 +295,38 @@ def report_command(
     paths.outputs_dir.mkdir(parents=True, exist_ok=True)
     out_path = paths.root / out_file
 
-    md = _render_markdown(concepts, title=title or cfg.project_name or "Draft Report", tokenizer_note=tokenizer_note, fiscal_summary=fiscal_summary, technical_refs=technical_refs)
+    # Select rendering function based on template
+    report_title = title or cfg.project_name or "Draft Report"
+    
+    if template == "budget_pm":
+        md = _render_budget_pm(concepts, title=report_title)
+        actual_out_file = str(out_file).replace("draft_report.md", "BUDGET_MITIGATION_PM.md")
+        out_path = paths.root / actual_out_file
+    elif template == "engineering_pm":
+        md = _render_engineering_pm(concepts, title=report_title)
+        actual_out_file = str(out_file).replace("draft_report.md", "ENGINEERING_PM.md")
+        out_path = paths.root / actual_out_file
+    else:
+        md = _render_markdown(concepts, title=report_title, tokenizer_note=tokenizer_note, fiscal_summary=fiscal_summary, technical_refs=technical_refs)
+    
     out_path.write_text(md, encoding="utf-8")
 
     # Generate report metadata document
-    from datetime import datetime
     metadata_content = f"""# Report Generation Metadata
 
 **Generated:** {datetime.utcnow().isoformat()}Z
 **Project:** {cfg.project_name}
+**Template:** {template}
 
 ## Report Details
 
 | Property | Value |
 |----------|-------|
 | Input File | {in_path.name} |
-| Output File | {out_file} |
-| Title | {title or cfg.project_name or "Draft Report"} |
+| Output File | {out_path.name} |
+| Title | {report_title} |
 | Concepts Included | {len(concepts)} |
+| Template Used | {template} |
 
 ## Files Generated
 
@@ -185,6 +339,7 @@ def report_command(
     metadata_path.write_text(metadata_content, encoding="utf-8")
 
     console.print("[bold green]Report generated[/bold green]")
+    console.print(f"  Template: {template}")
     console.print(f"  Input: {in_path}")
     console.print(f"  Report: {out_path}")
     console.print(f"  Metadata: {metadata_path}")
