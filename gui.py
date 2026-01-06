@@ -7,10 +7,12 @@ from pathlib import Path
 import threading
 import io
 from contextlib import redirect_stdout, redirect_stderr
+import yaml
 
 # Get the root directory of the application
 APP_ROOT = Path(__file__).parent
 LIST_ALL_CONTENTS_SCRIPT = APP_ROOT / "src" / "research_synth" / "list_all_contents.py"
+STATE_FILE = APP_ROOT / ".research_synth_state"
 
 def is_venv_active():
     """Check if .venv is activated."""
@@ -146,8 +148,15 @@ class ResearchSynthGUI(tk.Tk):
         self.title("Research Synth GUI")
         self.geometry("900x700")
         self.project_root = tk.StringVar()
+        
+        # Load persistent session state
+        self._load_project_context()
+        
         self.create_widgets()
         self.check_venv()
+        
+        # Hook window close event to save state
+        self.protocol("WM_DELETE_WINDOW", self._on_closing)
 
     def check_venv(self):
         """Check if .venv is activated."""
@@ -164,6 +173,36 @@ class ResearchSynthGUI(tk.Tk):
                         ".venv Not Found",
                         "Could not activate .venv. Please activate manually by running:\n.venv\\Scripts\\Activate.ps1"
                     )
+
+    def _load_project_context(self):
+        """Load the last used project root from persistent state file."""
+        try:
+            if STATE_FILE.exists():
+                with open(STATE_FILE, "r") as f:
+                    state = yaml.safe_load(f)
+                    if state and "last_project_root" in state:
+                        last_root = state["last_project_root"]
+                        # Verify the directory still exists
+                        if last_root and Path(last_root).is_dir():
+                            self.project_root.set(last_root)
+        except Exception as e:
+            # Silently fail if state file cannot be loaded
+            pass
+
+    def _save_project_context(self):
+        """Save the current project root to persistent state file."""
+        try:
+            state = {"last_project_root": self.project_root.get()}
+            with open(STATE_FILE, "w") as f:
+                yaml.dump(state, f)
+        except Exception as e:
+            # Silently fail if state file cannot be saved
+            pass
+
+    def _on_closing(self):
+        """Handle window close event: save state and exit."""
+        self._save_project_context()
+        self.destroy()
 
     def create_widgets(self):
         """Create the GUI widgets."""
