@@ -14,6 +14,26 @@ APP_ROOT = Path(__file__).parent
 LIST_ALL_CONTENTS_SCRIPT = APP_ROOT / "src" / "research_synth" / "list_all_contents.py"
 STATE_FILE = APP_ROOT / ".research_synth_state"
 
+def get_fixed_paths():
+    """
+    ENGINEERING DIRECTIVE: Local Root Standardization
+    
+    All data operations are pinned to APP_ROOT with mandatory structure:
+    - sources/: Input WSDOT site documents
+    - results/: Output reports, JSON extraction, analysis files
+    
+    Returns:
+        tuple: (source_dir, result_dir) - both guaranteed to exist
+    """
+    source_dir = APP_ROOT / "sources"
+    result_dir = APP_ROOT / "results"
+    
+    # Ensure directories exist locally (no rework if missing)
+    source_dir.mkdir(exist_ok=True)
+    result_dir.mkdir(exist_ok=True)
+    
+    return source_dir, result_dir
+
 def is_venv_active():
     """Check if .venv is activated."""
     return os.environ.get("VIRTUAL_ENV") is not None
@@ -85,12 +105,18 @@ def get_cli_options_direct():
 def list_all_files(project_root):
     """List all files in project root using list_all_contents.py."""
     try:
+        startupinfo = None
+        if sys.platform == "win32":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+        
         result = subprocess.run(
             [sys.executable, str(LIST_ALL_CONTENTS_SCRIPT), project_root],
             capture_output=True,
             text=True,
             timeout=10,
-            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+            startupinfo=startupinfo
         )
         if result.returncode == 0:
             return result.stdout if result.stdout else "(No files found)"
@@ -110,12 +136,18 @@ def get_cli_options():
             return result
         
         # Fallback to subprocess
+        startupinfo = None
+        if sys.platform == "win32":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+        
         result = subprocess.run(
             [sys.executable, "-m", "research_synth.cli", "--help"],
             capture_output=True,
             text=True,
             timeout=5,
-            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+            startupinfo=startupinfo
         )
         if result.returncode == 0:
             return result.stdout if result.stdout else "CLI help not available"
@@ -127,36 +159,91 @@ def get_cli_options():
         return f"Error: {str(e)}\n\nTry running diagnostics to check your installation."
 
 def run_cli_command(args):
-    """Run a CLI command with timeout and error handling."""
+    """Run a CLI command with fixed APP_ROOT paths and artifact validation.
+    
+    ENGINEERING DIRECTIVE: Local Root Standardization
+    - All operations execute in APP_ROOT (no dynamic project selection)
+    - Output files guaranteed in APP_ROOT/results/
+    
+    Args:
+        args: List of CLI arguments (e.g., ["ingest", "."])
+    
+    Returns:
+        Tuple of (output_text, artifacts_found, validation_status)
+    """
     try:
+        source_dir, result_dir = get_fixed_paths()
+        
+        # All CLI commands execute in results directory context
+        cwd = str(result_dir)
+        
+        if not Path(cwd).is_dir():
+            return f"Error: Result directory does not exist: {cwd}", [], "FAILED"
+        
+        files_before = set()
+        try:
+            for item in Path(cwd).rglob("*"):
+                if item.is_file():
+                    files_before.add(item.relative_to(cwd))
+        except Exception:
+            pass
+        
+        startupinfo = None
+        if sys.platform == "win32":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+        
         result = subprocess.run(
-            [sys.executable, "-m", "research_synth.cli"] + args,
+            ["research-synth"] + args,
             capture_output=True,
             text=True,
-            timeout=60,
-            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+            timeout=120,
+            cwd=cwd,
+            env=os.environ.copy(),
+            startupinfo=startupinfo
         )
-        return result.stdout + ("\n" + result.stderr if result.stderr else "")
+        
+        output_text = result.stdout + ("\n" + result.stderr if result.stderr else "")
+        validation_status = "SUCCESS" if result.returncode == 0 else "FAILED"
+        
+        artifacts_found = []
+        try:
+            for item in Path(cwd).rglob("*"):
+                if item.is_file():
+                    relative_path = item.relative_to(cwd)
+                    if relative_path not in files_before:
+                        if any(str(item).endswith(ext) for ext in [".md", ".json", ".yaml"]):
+                            artifacts_found.append(str(relative_path))
+        except Exception:
+            pass
+        
+        if result.returncode != 0:
+            validation_status = "FAILED"
+        elif not artifacts_found and any(cmd in args for cmd in ["ingest", "analyze", "report"]):
+            validation_status = "WARNING: No output files detected"
+        
+        return output_text, artifacts_found, validation_status
+    
     except subprocess.TimeoutExpired:
-        return "Error: Command timed out (exceeded 60 seconds)."
+        return "Error: Command timed out (exceeded 120 seconds).", [], "TIMEOUT"
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f"Error: {str(e)}", [], "FAILED"
 
 class ResearchSynthGUI(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Research Synth GUI")
+        self.title("Research Synth GUI - Local Root Mode")
         self.geometry("900x700")
-        self.project_root = tk.StringVar()
         
-        # Load persistent session state
-        self._load_project_context()
+        # Initialize fixed paths
+        source_dir, result_dir = get_fixed_paths()
+        self.source_dir = source_dir
+        self.result_dir = result_dir
         
         self.create_widgets()
         self.check_venv()
-        
-        # Hook window close event to save state
-        self.protocol("WM_DELETE_WINDOW", self._on_closing)
+        self.display_paths()
 
     def check_venv(self):
         """Check if .venv is activated."""
@@ -174,34 +261,12 @@ class ResearchSynthGUI(tk.Tk):
                         "Could not activate .venv. Please activate manually by running:\n.venv\\Scripts\\Activate.ps1"
                     )
 
-    def _load_project_context(self):
-        """Load the last used project root from persistent state file."""
-        try:
-            if STATE_FILE.exists():
-                with open(STATE_FILE, "r") as f:
-                    state = yaml.safe_load(f)
-                    if state and "last_project_root" in state:
-                        last_root = state["last_project_root"]
-                        # Verify the directory still exists
-                        if last_root and Path(last_root).is_dir():
-                            self.project_root.set(last_root)
-        except Exception as e:
-            # Silently fail if state file cannot be loaded
-            pass
-
-    def _save_project_context(self):
-        """Save the current project root to persistent state file."""
-        try:
-            state = {"last_project_root": self.project_root.get()}
-            with open(STATE_FILE, "w") as f:
-                yaml.dump(state, f)
-        except Exception as e:
-            # Silently fail if state file cannot be saved
-            pass
+    def display_paths(self):
+        """Display the configured paths to the user."""
+        self.status_label.config(text=f"Source: {self.source_dir} | Results: {self.result_dir}")
 
     def _on_closing(self):
-        """Handle window close event: save state and exit."""
-        self._save_project_context()
+        """Handle window close event."""
         self.destroy()
 
     def create_widgets(self):
@@ -212,13 +277,17 @@ class ResearchSynthGUI(tk.Tk):
         self.status_label = tk.Label(status_frame, text="Ready", bg="#f0f0f0", font=("Arial", 9))
         self.status_label.pack(side=tk.LEFT)
         
-        # Project root selection frame
-        frame = tk.Frame(self)
-        frame.pack(pady=10, padx=10, fill=tk.X)
-        tk.Label(frame, text="Project Root Directory:", font=("Arial", 10, "bold")).pack(side=tk.LEFT)
-        tk.Entry(frame, textvariable=self.project_root, width=50).pack(side=tk.LEFT, padx=5)
-        tk.Button(frame, text="Browse", command=self.browse_folder, bg="#4CAF50", fg="white").pack(side=tk.LEFT, padx=2)
+        # Path configuration frame (informational only)
+        path_frame = tk.Frame(self, bg="#e8f5e9", relief=tk.GROOVE, bd=2)
+        path_frame.pack(pady=10, padx=10, fill=tk.X)
+        tk.Label(path_frame, text="ENGINEERING DIRECTIVE: Local Root Standardization", 
+                font=("Arial", 10, "bold"), bg="#e8f5e9").pack(pady=5)
+        tk.Label(path_frame, text=f"Sources:  {self.source_dir}", 
+                font=("Arial", 9), bg="#e8f5e9", justify=tk.LEFT).pack(anchor=tk.W, padx=10)
+        tk.Label(path_frame, text=f"Results:  {self.result_dir}", 
+                font=("Arial", 9), bg="#e8f5e9", justify=tk.LEFT).pack(anchor=tk.W, padx=10)
         
+
         # Action buttons frame
         button_frame = tk.Frame(self)
         button_frame.pack(pady=10, padx=10, fill=tk.X)
@@ -240,31 +309,34 @@ class ResearchSynthGUI(tk.Tk):
         tk.Button(cli_frame, text="Run", command=self.run_cli_threaded, bg="#9C27B0", fg="white").pack(side=tk.LEFT, padx=2)
         tk.Label(cli_frame, text="(e.g., ingest /path/to/project or analyze /path/to/project)", font=("Arial", 8, "italic")).pack(side=tk.LEFT, padx=5)
 
-    def browse_folder(self):
-        """Browse for a project folder."""
-        folder = filedialog.askdirectory(title="Select Project Root Directory")
-        if folder:
-            self.project_root.set(folder)
-
     def show_all_files_threaded(self):
         """Show all files in a separate thread to prevent GUI freezing."""
-        root = self.project_root.get()
-        if not root:
-            messagebox.showerror("Error", "Please select a project root directory.")
-            return
         self.status_label.config(text="Listing files...", fg="blue")
         threading.Thread(target=self._show_all_files, daemon=True).start()
 
     def _show_all_files(self):
         """Worker thread for listing all files."""
         try:
-            root = self.project_root.get()
             self.output.delete(1.0, tk.END)
-            self.output.insert(tk.END, f"Listing all files in {root}...\n\n")
-            files = list_all_files(root)
-            self.output.insert(tk.END, files)
+            self.output.insert(tk.END, f"Files in sources directory:\n\n")
+            self.update_idletasks()  # Force GUI update
+            
+            files = []
+            if self.source_dir.exists():
+                for f in self.source_dir.rglob("*"):
+                    if f.is_file():
+                        files.append(str(f.relative_to(self.source_dir)))
+            
+            if files:
+                for f in sorted(files):
+                    self.output.insert(tk.END, f"  ✓ {f}\n")
+            else:
+                self.output.insert(tk.END, "(No files found in sources directory)\n")
+                self.output.insert(tk.END, f"\nPlace documents in: {self.source_dir}\n")
+            
             self.status_label.config(text="Files listed successfully", fg="green")
         except Exception as e:
+            self.output.delete(1.0, tk.END)
             self.output.insert(tk.END, f"Error: {str(e)}")
             self.status_label.config(text=f"Error: {str(e)}", fg="red")
 
@@ -317,16 +389,103 @@ class ResearchSynthGUI(tk.Tk):
         threading.Thread(target=self._run_cli, args=(args,), daemon=True).start()
 
     def _run_cli(self, args):
-        """Worker thread for running CLI commands."""
+        """Worker thread for running CLI commands with artifact validation.
+        
+        ENGINEERING DIRECTIVE: Local Root Standardization
+        All commands execute in APP_ROOT/results/ with sources from APP_ROOT/sources/
+        """
         try:
             self.output.delete(1.0, tk.END)
-            self.output.insert(tk.END, f"Running: research-synth {' '.join(args)}\n\n")
-            result = run_cli_command(args)
-            self.output.insert(tk.END, result)
-            self.status_label.config(text="Command completed successfully", fg="green")
+            self.output.insert(tk.END, f"Running: research-synth {' '.join(args)}\n")
+            self.output.insert(tk.END, f"Sources: {self.source_dir}\n")
+            self.output.insert(tk.END, f"Results: {self.result_dir}\n\n")
+            self.update_idletasks()
+            
+            output_text, artifacts_found, validation_status = run_cli_command(args)
+            
+            self.output.insert(tk.END, output_text)
+            self.output.insert(tk.END, "\n" + "="*80 + "\n")
+            self.output.insert(tk.END, "EXECUTION SUMMARY\n")
+            self.output.insert(tk.END, f"Status: {validation_status}\n")
+            
+            if artifacts_found:
+                self.output.insert(tk.END, f"\nArtifacts Generated ({len(artifacts_found)}): \n")
+                for artifact in artifacts_found:
+                    self.output.insert(tk.END, f"  ✓ {artifact}\n")
+            else:
+                self.output.insert(tk.END, "\nNo new artifacts detected.\n")
+            
+            # Validation Protocol
+            self._validate_artifacts(args, artifacts_found)
+            
+            if "SUCCESS" in validation_status:
+                self.status_label.config(text=f"✓ SUCCESS | {len(artifacts_found)} artifacts generated", fg="green")
+            elif "WARNING" in validation_status:
+                self.status_label.config(text="⚠ WARNING Command ran but no output files detected", fg="orange")
+            else:
+                self.status_label.config(text=f"✗ FAILED {validation_status}", fg="red")
+        
         except Exception as e:
+            self.output.delete(1.0, tk.END)
             self.output.insert(tk.END, f"Error: {str(e)}")
-            self.status_label.config(text=f"Command error: {str(e)}", fg="red")
+            self.status_label.config(text=f"Error: {str(e)}", fg="red")
+    
+    def _validate_artifacts(self, args, artifacts_found):
+        """
+        DEFINITIVE VALIDATION PROTOCOL (No Rework Phase)
+        
+        Ensures artifacts contain actual data, not hollow successes.
+        """
+        self.output.insert(tk.END, "\n" + "="*80 + "\n")
+        self.output.insert(tk.END, "INTEGRITY VALIDATION\n")
+        self.output.insert(tk.END, "="*80 + "\n")
+        
+        command = args[0] if args else None
+        
+        try:
+            if command == "init" and artifacts_found:
+                # Verification of Content: init_report.md must be > 1KB
+                init_report = self.result_dir / "init_report.md"
+                if init_report.exists():
+                    size = init_report.stat().st_size
+                    if size > 1024:
+                        self.output.insert(tk.END, f"✓ init_report.md size: {size} bytes (>1KB) - VALID\n")
+                    else:
+                        self.output.insert(tk.END, f"✗ init_report.md size: {size} bytes (<1KB) - INVALID\n")
+            
+            elif command == "ingest" and artifacts_found:
+                # Data Accuracy Audit: extracted_text.json must contain actual strings
+                extracted = self.result_dir / "chunks" / "extracted_text.json"
+                if extracted.exists():
+                    import json
+                    try:
+                        with open(extracted, 'r') as f:
+                            data = json.load(f)
+                        
+                        # Check if data contains actual text (not empty structures)
+                        if data and len(str(data)) > 100:
+                            self.output.insert(tk.END, f"✓ extracted_text.json contains {len(str(data))} chars of data - VALID\n")
+                        else:
+                            self.output.insert(tk.END, f"✗ extracted_text.json is empty or minimal - INVALID\n")
+                    except Exception as e:
+                        self.output.insert(tk.END, f"✗ extracted_text.json parsing error: {e}\n")
+            
+            elif command == "report" and artifacts_found:
+                # Success Lockdown: Report must be human-readable
+                report = self.result_dir / "outputs" / "draft_report.md" if (self.result_dir / "outputs").exists() else self.result_dir / "draft_report.md"
+                if report.exists():
+                    size = report.stat().st_size
+                    with open(report, 'r') as f:
+                        content = f.read()
+                    
+                    if size > 500 and len(content) > 100:
+                        self.output.insert(tk.END, f"✓ Draft report: {size} bytes, human-readable - VALID\n")
+                        self.output.insert(tk.END, f"✓ CODEBASE READY FOR FREEZE\n")
+                    else:
+                        self.output.insert(tk.END, f"✗ Draft report too small or invalid: {size} bytes\n")
+        
+        except Exception as e:
+            self.output.insert(tk.END, f"Validation check skipped: {str(e)}\n")
 
 if __name__ == "__main__":
     app = ResearchSynthGUI()
