@@ -1,15 +1,11 @@
-# Core requirements for research-synth
-# Matches repo: research-synth-with-llm-analyze-optional-extras
-# Safe for enterprise Windows environments (no compilers required)
-
+# Core requirements for research-synth (core-only)
+# Python 3.13 compatible pins (enterprise-safe)
 typer==0.12.3
 click==8.1.7
 pydantic==2.8.2
 pydantic-settings==2.4.0
-rich==14.2.0
+rich==13.7.1
 diskcache==5.6.3
 PyYAML==6.0.3
-tiktoken>=0.8.0
-
-# Dev / test
+tiktoken==0.8.0
 pytest==9.0.2

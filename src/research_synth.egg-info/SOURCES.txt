@@ -11,6 +11,7 @@ src/research_synth/log.py
 src/research_synth/models.py
 src/research_synth/openai_http.py
 src/research_synth/paths.py
+src/research_synth/tokenizer.py
 src/research_synth.egg-info/PKG-INFO
 src/research_synth.egg-info/SOURCES.txt
 src/research_synth.egg-info/dependency_links.txt
@@ -23,6 +24,7 @@ src/research_synth/commands/ingest.py
 src/research_synth/commands/init.py
 src/research_synth/commands/report.py
 tests/test_analyze.py
+tests/test_chunking_fallback.py
 tests/test_ingest.py
 tests/test_init.py
 tests/test_openai_http.py

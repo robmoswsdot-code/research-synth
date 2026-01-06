@@ -41,19 +41,6 @@ This directory contains:
 3. Run tests: `pytest`
 4. Verify: `research-synth --help`
 
-## Optional extras
-Some features are provided as optional dependency *extras* that are not required for the core CLI. Install extras with:
-
-```powershell
-pip install -e .[tokens,pdf,excel]
-```
-
-- `tokens`: installs `tiktoken` for token-aware chunking (recommended when available). The code includes a **whitespace-tokenizer fallback** so the tool works without `tiktoken` installed.
-- `pdf`: installs `pymupdf` for PDF extraction. On some Windows environments a native build may be required if a prebuilt wheel is unavailable — prefer installing these extras on platforms with available wheels.
-- `excel`: installs `pandas` + `openpyxl` for Excel extraction.
-
-Note: extras may increase install size and, in some environments, require platform-specific toolchains; only install extras you need.
-
 ## Creating a Research Run
 1. Create a local working folder.
 2. `cd` into that folder.
@@ -99,3 +86,22 @@ research-synth analyze . --mode openai --model gpt-4o-mini --max-concepts 50
 ```
 
 If you cannot use external network calls, keep using `--mode heuristic`.
+
+
+## Tokenization Fidelity (Important)
+This tool uses `tiktoken` for accurate token counting. If `tiktoken` cannot be loaded, ingestion will fail by default to avoid silent clipping.
+
+- Normal: `research-synth ingest .`
+- Override (not recommended): `research-synth ingest . --allow-low-fidelity`
+
+If low-fidelity mode is used, the generated report will include a prominent warning header.
+
+
+## Technical Reference (Assistive)
+Provide a folder of WSDOT manual text files (`.md` or `.txt`) to generate an assistive "Technical Reference" section in the report:
+
+```powershell
+research-synth report . --source-manual "C:\path\to\wsdot-manuals"
+```
+
+This is an assistive index only; validate citations against the official manual text.

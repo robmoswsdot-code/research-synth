@@ -5,7 +5,8 @@ import os
 import re
 from collections import Counter
 from pathlib import Path
-from datetime import datetime, timezone
+from typing import Optional
+from datetime import datetime
 import typer
 
 from research_synth.log import console
@@ -218,6 +219,28 @@ def _openai_concepts(
     concepts.sort(key=lambda c: (-len(c.evidence), c.label))
     return concepts
 
+def _load_budget_summary(budget_file: Path) -> dict | None:
+    try:
+        import pandas as pd  # type: ignore
+    except ModuleNotFoundError:
+        raise RuntimeError("Excel support not installed. Run: pip install -e '.[excel]'")
+    if budget_file.suffix.lower() == ".csv":
+        df = pd.read_csv(budget_file)
+    else:
+        df = pd.read_excel(budget_file)
+    cols = {c.lower(): c for c in df.columns}
+    needed = ["site", "authorized", "spent"]
+    if any(n not in cols for n in needed):
+        return None
+    rows = []
+    for _, row in df.iterrows():
+        site = str(row[cols["site"]]).strip()
+        authorized = float(row[cols["authorized"]]) if str(row[cols["authorized"]]).strip() else 0.0
+        spent = float(row[cols["spent"]]) if str(row[cols["spent"]]).strip() else 0.0
+        remaining = authorized - spent
+        rows.append({"site": site, "authorized": authorized, "spent": spent, "remaining": remaining})
+    return {"rows": rows}
+
 def analyze_command(
     project_root: Path = typer.Argument(Path("."), exists=True, file_okay=False, dir_okay=True),
     max_concepts: int = typer.Option(50, "--max-concepts", help="Maximum number of concepts to output (after merge)."),
@@ -225,6 +248,7 @@ def analyze_command(
     mode: str = typer.Option("heuristic", "--mode", help="heuristic (offline) or openai (LLM)."),
     model: str = typer.Option("gpt-4o-mini", "--model", help="Model name for --mode openai."),
     batch_size: int = typer.Option(12, "--batch-size", help="Chunks per OpenAI request (openai mode)."),
+    budget_file: Optional[Path] = typer.Option(None, "--budget-file", help="Optional budget spreadsheet (xlsx/csv) for fiscal summary (requires excel extra)."),
 ) -> None:
     """Generate concepts from ingested chunks.
 
@@ -269,10 +293,11 @@ def analyze_command(
     out_path = paths.analysis_dir / "concepts.json"
     out_payload = {
         "project": cfg.project_name,
-        "generated_at": datetime.now(timezone.utc).isoformat() + "Z",
+        "generated_at": datetime.utcnow().isoformat() + "Z",
         "input": str(in_path.relative_to(paths.root)),
         "mode": mode_norm,
         "model": model if mode_norm == "openai" else None,
+        "fiscal_summary": _load_budget_summary(budget_file) if budget_file is not None else None,
         "concept_count": len(concepts),
         "concepts": [c.model_dump() for c in concepts],
     }

@@ -1,0 +1,124 @@
+{
+  "schema_version": "0.1.0",
+  "purpose": "Reconcile monthly expenditures export to BudgetTracker XLSM inputs (by Work Order + PIN).",
+  "sources": {
+    "monthly_report": {
+      "file_types": [".xlsx"],
+      "expected_sheet_names": ["Query Results"],
+      "header_detection": {
+        "method": "row_contains_all_headers",
+        "search_rows": [1, 40],
+        "required_headers": [
+          "Work Order",
+          "Program Item Number",
+          "Organization Code"
+        ]
+      },
+      "columns": {
+        "keys": [
+          { "name": "Work Order", "type": "string", "required": true },
+          { "name": "Program Item Number", "type": "string", "required": true },
+          { "name": "Organization Code", "type": "string", "required": false },
+          { "name": "Control Section", "type": "string", "required": false },
+          { "name": "Work Order Group", "type": "string", "required": false },
+          { "name": "Group Category", "type": "string", "required": false }
+        ],
+        "measures": {
+          "monthly_expenditure_columns": {
+            "type": "number",
+            "match": {
+              "regex": "^[A-Z][a-z]{2} - \\d{4} EX$"
+            },
+            "notes": "Month columns like 'Jan - 2026 EX'."
+          },
+          "totals": [
+            { "name": "FY1 EX", "type": "number", "required": false },
+            { "name": "FY2 EX", "type": "number", "required": false },
+            { "name": "Bien EX", "type": "number", "required": false },
+            { "name": "Selected EX", "type": "number", "required": false }
+          ]
+        }
+      },
+      "aggregation": {
+        "group_by": ["Work Order", "Program Item Number"],
+        "sum_fields": ["<MONTH_COLUMN>"],
+        "output_fields": [
+          "Work Order",
+          "Program Item Number",
+          "month_label",
+          "month_expenditure_sum"
+        ]
+      },
+      "validation_rules": [
+        {
+          "rule": "non_negative",
+          "field": "<MONTH_COLUMN>",
+          "severity": "warn",
+          "message": "Monthly expenditures are usually >= 0; investigate negatives (reversals/corrections)."
+        }
+      ]
+    },
+
+    "tracker_tool": {
+      "file_types": [".xlsm"],
+      "notes": "Read-only for reconciliation. Do not write back automatically.",
+      "reference_tables": [
+        {
+          "name": "expenditures_by_pin",
+          "expected_sheet_names": ["XL6756 Analysis"],
+          "header_detection": {
+            "method": "row_contains_all_headers",
+            "search_rows": [1, 50],
+            "required_headers": ["PIN", "WO #", "Selected EX"]
+          },
+          "columns": {
+            "keys": [
+              { "name": "WO #", "type": "string", "required": true },
+              { "name": "PIN", "type": "string", "required": true }
+            ],
+            "measures": [
+              { "name": "Selected EX", "type": "number", "required": false }
+            ],
+            "dynamic_month_increment": {
+              "type": "number",
+              "match": { "regex": "^[A-Za-z]+\\s\\d{4}\\sIncr$" },
+              "example": "June 2025 Incr",
+              "notes": "This is the monthly delta column the user typically updates."
+            }
+          }
+        }
+      ]
+    }
+  },
+
+  "route_portfolio": {
+    "enabled": true,
+    "recognized_routes": ["SR 92", "SR 164", "SR 204", "SR 410", "SR 528"],
+    "route_detection": {
+      "strategy": "regex_search_in_file_path_or_text",
+      "regex": "\\bSR\\s*0*(92|164|204|410|528)\\b"
+    },
+    "notes": "Monthly report may not contain SR labels; route tagging may rely on project folder/file naming conventions or a separate mapping file."
+  },
+
+  "reconciliation_output": {
+    "primary_key": ["Work Order", "Program Item Number"],
+    "fields": [
+      "Work Order",
+      "Program Item Number",
+      "month_label",
+      "month_expenditure_sum",
+      "tracker_selected_ex",
+      "delta_to_apply",
+      "flags"
+    ],
+    "flags": [
+      "missing_in_tracker",
+      "negative_month_value",
+      "large_delta_threshold"
+    ],
+    "thresholds": {
+      "large_delta_threshold": 50000.0
+    }
+  }
+}

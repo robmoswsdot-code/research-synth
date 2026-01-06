@@ -2,12 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Iterable
-
-try:
-    import tiktoken
-    _USE_TIKTOKEN = True
-except Exception:
-    _USE_TIKTOKEN = False
+import tiktoken
 
 @dataclass(frozen=True)
 class Chunk:
@@ -15,25 +10,15 @@ class Chunk:
     text: str
 
 def chunk_text(text: str, max_tokens: int = 800, overlap: int = 100) -> list[Chunk]:
-    # Token-aware chunking using tiktoken when available; falls back to whitespace tokens.
+    # Token-aware chunking using tiktoken (fast, stable).
     text = (text or "").strip()
     if not text:
         return []
 
-    if _USE_TIKTOKEN:
-        enc = tiktoken.get_encoding("cl100k_base")
-        tokens = enc.encode(text)
-        if not tokens:
-            return []
-        def _decode(toklist):
-            return enc.decode(toklist)
-    else:
-        # Simple fallback tokenizer: split on whitespace and treat words as tokens.
-        tokens = text.split()
-        if not tokens:
-            return []
-        def _decode(toklist):
-            return " ".join(toklist)
+    enc = tiktoken.get_encoding("cl100k_base")
+    tokens = enc.encode(text)
+    if not tokens:
+        return []
 
     chunks: list[Chunk] = []
     start = 0
@@ -41,7 +26,7 @@ def chunk_text(text: str, max_tokens: int = 800, overlap: int = 100) -> list[Chu
     while start < len(tokens):
         end = min(start + max_tokens, len(tokens))
         chunk_tokens = tokens[start:end]
-        chunk_text = _decode(chunk_tokens).strip()
+        chunk_text = enc.decode(chunk_tokens).strip()
         if chunk_text:
             chunks.append(Chunk(index=idx, text=chunk_text))
             idx += 1
@@ -50,3 +35,31 @@ def chunk_text(text: str, max_tokens: int = 800, overlap: int = 100) -> list[Chu
         # overlap
         start = max(0, end - overlap)
     return chunks
+
+
+from research_synth.tokenizer import get_token_counter, TokenizerInfo
+
+def chunk_text_with_meta(text: str, *, max_tokens: int, overlap: int) -> tuple[list[str], TokenizerInfo]:
+    count_tokens, info = get_token_counter()
+    # If chunk_text supports count_tokens, use it; else fall back.
+    if "chunk_text" in globals():
+        try:
+            chunks = chunk_text(text, max_tokens=max_tokens, overlap=overlap, count_tokens=count_tokens)  # type: ignore[arg-type]
+            return chunks, info
+        except TypeError:
+            pass
+
+    parts = [p.strip() for p in (text or "").split("\n\n") if p.strip()]
+    out: list[str] = []
+    buf = ""
+    for p in parts:
+        candidate = (buf + "\n\n" + p).strip() if buf else p
+        if count_tokens(candidate) <= max_tokens:
+            buf = candidate
+            continue
+        if buf:
+            out.append(buf)
+        buf = p
+    if buf:
+        out.append(buf)
+    return out, info
