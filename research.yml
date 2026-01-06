@@ -1,5 +1,0 @@
-project_name: Auto Project
-source_dirs:
-- sources
-output_format: markdown
-citation_style: inline

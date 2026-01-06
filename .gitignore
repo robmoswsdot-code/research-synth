@@ -31,6 +31,8 @@ test_*.py
 debug_*.py
 validate_*.py
 
-# Legacy
+# Legacy & Archive
 legacy/
 tools/
+archive/
+.pytest_cache/
