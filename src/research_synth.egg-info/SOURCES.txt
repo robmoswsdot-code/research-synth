@@ -6,7 +6,9 @@ src/research_synth/chunking.py
 src/research_synth/cli.py
 src/research_synth/config.py
 src/research_synth/extractors.py
+src/research_synth/gui.py
 src/research_synth/hashing.py
+src/research_synth/list_all_contents.py
 src/research_synth/log.py
 src/research_synth/models.py
 src/research_synth/openai_http.py
