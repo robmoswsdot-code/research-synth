@@ -4,7 +4,8 @@ from pathlib import Path
 # Directories to skip during traversal
 SKIP_DIRS = {
     ".venv", ".env", "__pycache__", ".git", ".pytest_cache",
-    ".research_cache", ".ruff_cache", "node_modules", ".eggs", "*.egg-info"
+    ".research_cache", ".ruff_cache", "node_modules", ".eggs", "*.egg-info",
+    "results", "archive", "tests", "src", "legacy"
 }
 
 def list_all_contents(root_dir: str):
