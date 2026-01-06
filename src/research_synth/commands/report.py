@@ -158,6 +158,33 @@ def report_command(
     md = _render_markdown(concepts, title=title or cfg.project_name or "Draft Report", tokenizer_note=tokenizer_note, fiscal_summary=fiscal_summary, technical_refs=technical_refs)
     out_path.write_text(md, encoding="utf-8")
 
+    # Generate report metadata document
+    from datetime import datetime
+    metadata_content = f"""# Report Generation Metadata
+
+**Generated:** {datetime.utcnow().isoformat()}Z
+**Project:** {cfg.project_name}
+
+## Report Details
+
+| Property | Value |
+|----------|-------|
+| Input File | {in_path.name} |
+| Output File | {out_file} |
+| Title | {title or cfg.project_name or "Draft Report"} |
+| Concepts Included | {len(concepts)} |
+
+## Files Generated
+
+- **Report:** {out_path}
+- **Metadata:** {out_path.parent / 'report_metadata.md'}
+
+"""
+    
+    metadata_path = out_path.parent / "report_metadata.md"
+    metadata_path.write_text(metadata_content, encoding="utf-8")
+
     console.print("[bold green]Report generated[/bold green]")
     console.print(f"  Input: {in_path}")
-    console.print(f"  Output: {out_path}")
+    console.print(f"  Report: {out_path}")
+    console.print(f"  Metadata: {metadata_path}")

@@ -109,6 +109,48 @@ def ingest_command(
     }
     out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
+    # Generate markdown summary
+    md_content = f"""# Ingest Report
+
+**Project:** {cfg.project_name}
+**Generated:** {datetime.utcnow().isoformat()}Z
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| Files Processed | {len(source_files)} |
+| Chunks Created | {len(all_chunks)} |
+| Extracted (New) | {extracted_docs} |
+| Cached (Reused) | {cached_docs} |
+| Skipped | {skipped_docs} |
+
+## Source Directories
+
+{chr(10).join(f"- {d}" for d in cfg.source_dirs)}
+
+## Chunk Statistics
+
+- **Max Tokens per Chunk:** {max_tokens}
+- **Token Overlap:** {overlap}
+- **Total Tokens (approx):** {sum(len(ch.text.split()) for ch in all_chunks) * 1.3:.0f}
+
+## Output Files
+
+- **JSON:** {out_path}
+- **Markdown:** {out_path.parent / 'ingest_report.md'}
+"""
+    
+    if skipped_docs:
+        md_content += f"\n## Skipped Files ({skipped_docs})\n\n"
+        for s in skipped[:10]:
+            md_content += f"- {s}\n"
+        if len(skipped) > 10:
+            md_content += f"\n... and {len(skipped)-10} more\n"
+    
+    md_path = out_path.parent / "ingest_report.md"
+    md_path.write_text(md_content, encoding="utf-8")
+
     console.print("[bold green]Ingest complete[/bold green]")
     console.print(f"  Files: {len(source_files)}")
     console.print(f"  Extracted (cache miss): {extracted_docs}")
@@ -120,4 +162,5 @@ def ingest_command(
             console.print(f"    - {s}")
         if len(skipped) > 10:
             console.print(f"    ... and {len(skipped)-10} more")
-    console.print(f"  Output: {out_path}")
+    console.print(f"  JSON Output: {out_path}")
+    console.print(f"  Markdown Report: {md_path}")

@@ -303,6 +303,53 @@ def analyze_command(
     }
     out_path.write_text(json.dumps(out_payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
+    # Generate markdown summary
+    md_content = f"""# Analysis Report
+
+**Project:** {cfg.project_name}
+**Generated:** {datetime.utcnow().isoformat()}Z
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| Mode | {mode_norm} |
+| Model | {model if mode_norm == "openai" else "Heuristic"} |
+| Concepts Extracted | {len(concepts)} |
+| Input File | {in_path.name} |
+
+## Analysis Mode
+
+"""
+    if mode_norm == "openai":
+        md_content += f"**Provider:** OpenAI Responses API (Structured Outputs)\n**Model:** {model}\n\n"
+    else:
+        md_content += "**Method:** Heuristic (keyword-based)\n\n"
+    
+    md_content += "## Extracted Concepts\n\n"
+    for i, concept in enumerate(concepts[:20], 1):
+        md_content += f"### {i}. {concept.label}\n\n"
+        md_content += f"**Category:** {concept.category}\n"
+        md_content += f"**Confidence:** {concept.confidence}\n"
+        md_content += f"**Summary:** {concept.summary}\n\n"
+        if concept.evidence:
+            md_content += f"**Evidence:** {len(concept.evidence)} reference(s)\n"
+            for ev in concept.evidence[:3]:
+                md_content += f"- {ev.source_file}: {ev.quote or '(no quote)'}\n"
+            if len(concept.evidence) > 3:
+                md_content += f"- ... and {len(concept.evidence) - 3} more\n"
+            md_content += "\n"
+    
+    if len(concepts) > 20:
+        md_content += f"\n... and {len(concepts) - 20} more concepts\n"
+    
+    md_content += f"\n## Output Files\n\n"
+    md_content += f"- **JSON:** {out_path}\n"
+    md_content += f"- **Markdown:** {out_path.parent / 'analysis_report.md'}\n"
+    
+    md_path = out_path.parent / "analysis_report.md"
+    md_path.write_text(md_content, encoding="utf-8")
+
     console.print("[bold green]Analyze complete[/bold green]")
     console.print(f"  Mode: {mode_norm}")
     if mode_norm == "openai":
@@ -310,4 +357,5 @@ def analyze_command(
         console.print(f"  Model: {model}")
     console.print(f"  Input: {in_path}")
     console.print(f"  Concepts: {len(concepts)}")
-    console.print(f"  Output: {out_path}")
+    console.print(f"  JSON Output: {out_path}")
+    console.print(f"  Markdown Report: {md_path}")
